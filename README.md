@@ -1,100 +1,195 @@
 
-# OMVAD – Software Developer Internship Assignment
+# Link Saver
 
-This repository contains my submission for the Software Developer Internship assignment at OMVAD. The project demonstrates a full-stack web application with proper UI/UX, API integration, and caching mechanisms.
+Link Saver is a full-stack web application that allows users to save, organize, and manage bookmarks with tags. Built with a React frontend and a Node.js/Express backend, it features a user-friendly interface with theme toggling (light/dark mode), drag-and-drop bookmark reordering, and tag-based organization. Redis is used to cache bookmarks for faster access and reduced database load.
+
+---
 
 ## 🚀 Features
 
-- Full-stack MERN application (MongoDB, Express, React, Node.js)
-- Responsive and clean UI using TailwindCSS
-- RESTful APIs for backend operations
-- Authentication and authorization
-- **Redis caching implemented for performance optimization**
-- Error handling and loading states
-- Live demo hosted on Vercel / Render / Railway
-
-## ⚙️ Tech Stack
-
-- **Frontend**: React.js, TailwindCSS, Axios
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB (Mongoose)
-- **Caching**: **Redis**
-- Deployment: Vercel (Frontend), Render/Railway (Backend)
+- **User Authentication**: Secure login and registration using JWT.
+- **Bookmark Management**:
+  - Add bookmarks with URLs and comma-separated tags.
+  - Optimistic updates for instant UI feedback.
+  - Delete bookmarks directly from the list.
+  - Drag-and-drop to reorder bookmarks, with order persisted in the backend.
+- **Redis Caching**: Frequently accessed bookmarks are cached in Redis to reduce latency and load on MongoDB.
+- **Theme Support**: Toggle between light and dark modes for a comfortable user experience.
+- **Responsive Design**: Works seamlessly on desktop and mobile devices.
+- **Error Handling**: Graceful handling of API errors with user feedback.
 
 ---
 
-## 🧠 Redis Integration
+## 🧰 Tech Stack
 
-To optimize performance and reduce unnecessary database queries, **Redis** has been integrated into the backend.
+- **Frontend**: React, React Router, Axios, Tailwind CSS
+- **Backend**: Node.js, Express.js, MongoDB, **Redis**, Jina AI
+- **Authentication**: JWT (JSON Web Tokens)
+- **Deployment**: Backend (http://localhost:5000 for development)
 
-### 🔧 Setup
+---
 
-1. Make sure Redis is installed and running locally or use a cloud Redis service like Redis Cloud or Upstash.
-2. In the backend `.env` file, include:
-```
+## 📦 Prerequisites
 
-REDIS\_URL=redis\://localhost:6379
+- Node.js (v16 or higher)
+- Docker and Docker Compose
+- MongoDB and Redis (via Docker or local installation)
+- Jina AI API key for URL summaries
 
-````
+---
 
-### 📦 Installation
+## ⚙️ Setup Instructions
+
+### 1. Clone the Repository
 
 ```bash
-npm install redis
+git clone https://github.com/<your-username>/link-saver.git
+cd link-saver
 ````
 
-### 🛠️ Usage Example
+### 2. Backend Setup
+
+```bash
+cd backend
+```
+
+Create a `.env` file with the following:
+
+```
+MONGODB_URI=mongodb://mongo:27017/link-saver  
+REDIS_URL=redis://redis:6379  
+JWT_SECRET=your_jwt_secret_key  
+PORT=5000  
+JINA_API_KEY=your_jina_api_key  
+```
+
+> Replace `your_jwt_secret_key` with a secure secret.
+> Get `your_jina_api_key` from Jina AI.
+
+Install backend dependencies:
+
+```bash
+npm install
+```
+
+Start the backend with Docker (MongoDB + Redis):
+
+```bash
+docker-compose up -d
+```
+
+### 3. Frontend Setup
+
+```bash
+cd ../frontend
+```
+
+Install frontend dependencies:
+
+```bash
+npm install
+```
+
+Add a default favicon at:
+
+```bash
+frontend/public/default-favicon.png
+```
+
+Start the frontend:
+
+```bash
+npm start
+```
+
+> Runs on [http://localhost:3000](http://localhost:3000)
+
+---
+
+## 📌 Redis Caching
+
+Redis is used to cache user bookmarks to reduce response times and database calls.
+
+### Example Usage
 
 ```js
-import { createClient } from 'redis';
+const cacheKey = `bookmarks:${userId}`;
+const cached = await redisClient.get(cacheKey);
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL
-});
+if (cached) {
+  return res.json(JSON.parse(cached));
+}
 
-redisClient.connect();
+const bookmarks = await Bookmark.find({ user: userId });
+await redisClient.set(cacheKey, JSON.stringify(bookmarks), { EX: 3600 }); // Cache for 1 hour
 
-const cacheKey = `user:${userId}`;
-const cachedUser = await redisClient.get(cacheKey);
+res.json(bookmarks);
+```
 
-if (cachedUser) {
-  return res.status(200).json(JSON.parse(cachedUser));
-} else {
-  const user = await User.findById(userId);
-  await redisClient.set(cacheKey, JSON.stringify(user), {
-    EX: 3600 // 1 hour cache
-  });
-  return res.status(200).json(user);
+### Benefits
+
+* Improved API performance
+* Reduced MongoDB load
+* Faster response for frequent data access
+
+---
+
+## 🧪 Usage
+
+### Login/Register
+
+* Go to `http://localhost:3000/login` or `/register`
+* Use credentials to access dashboard
+
+### Add Bookmarks
+
+* Enter a URL (e.g., `https://en.wikipedia.org/wiki/Artificial_intelligence`) and tags (e.g., `AI,Tech`)
+* Submit to save bookmark (title/favicons are fetched later)
+
+### Manage Bookmarks
+
+* Drag and drop bookmarks to reorder
+* Delete bookmarks via trash icon
+* Switch between light and dark themes
+
+---
+
+## 📫 Test with Postman
+
+### Add Bookmark
+
+```
+POST http://localhost:5000/api/bookmarks  
+Authorization: Bearer <token>
+```
+
+```json
+{
+  "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+  "tags": ["AI", "Tech"]
 }
 ```
 
-### ✅ Benefits
+### Get Bookmarks
 
-* Reduces latency for frequent data requests
-* Minimizes load on MongoDB
-* Improves overall response times
-
----
-
-## 📂 How to Run Locally
-
-```bash
-# Clone the repository
-git clone https://github.com/prateek-007/your-repo-name.git
-
-# Navigate to backend folder
-cd backend
-npm install
-npm run dev
-
-# Navigate to frontend folder
-cd ../frontend
-npm install
-npm run dev
+```
+GET http://localhost:5000/api/bookmarks  
+Authorization: Bearer <token>
 ```
 
 ---
 
-## 🔗 Live Demo
+## 🛠 Troubleshooting
 
-* **Frontend**: [https://your-frontend-link.com]([https://link-saver-drab.vercel.app])
+* **Bookmarks Not Saving**:
+  Check `/api/bookmarks` request for 400/500 errors. Ensure Jina API key is correct and Docker containers are running.
+
+* **Redis Not Caching**:
+  Verify Redis is running (`docker ps`) and `REDIS_URL` is correct in `.env`.
+
+* **Theme Issues**:
+  Check `ThemeContext` and Tailwind classes (`bg-gray-900`, `text-gray-100`, etc.)
+
+* **API Errors**:
+  Use `docker logs <container_name>` for backend debugging.
+
